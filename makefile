@@ -1,7 +1,7 @@
 
 
-SRC=main.c
+SRC=gol.c
 CFLAGS=-Wall -Wextra -g
 
-main: ${SRC}
+gol: ${SRC}
 	${CC} ${CFLAGS} $< -o $@
