@@ -11,16 +11,16 @@
 bool should_run = true;
 void signal_handler(int) { should_run = false; }
 
-enum states
+typedef enum _States
 {
     DEAD,
     ALIVE,
     STATES_LEN
-};
+} States;
 
 #define POS(arr, i, j, width) arr[(i)*width + (j)]
 
-void print_board(uint8_t* board, size_t width, size_t height)
+void print_board(States* board, size_t width, size_t height)
 {
     for (size_t i = 0; i < height; i++)
     {
@@ -47,7 +47,7 @@ void print_board(uint8_t* board, size_t width, size_t height)
 }
 
 #define ROUND_POS(arr, i, j, width, height) POS(arr, ((i + height) % height), ((j + width) % width), width)
-uint8_t get_neighbors(const uint8_t* board, size_t width, size_t height, size_t i, size_t j)
+uint8_t get_neighbors(const States* board, size_t width, size_t height, size_t i, size_t j)
 {
     uint8_t count = 0;
     for (int row = i - 1; row <= (int)i + 1; row++)
@@ -63,7 +63,7 @@ uint8_t get_neighbors(const uint8_t* board, size_t width, size_t height, size_t 
     return count;
 }
 
-void step(const uint8_t* board_a, uint8_t* board_b, size_t width, size_t height)
+void step(const States* board_a, States* board_b, size_t width, size_t height)
 {
     for (size_t i = 0; i < height; i++)
     {
@@ -92,11 +92,11 @@ void clear_screen()
     write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 11);
 }
 
-void switch_board(uint8_t** board_a, uint8_t** board_b)
+void switch_board(States** board_a, States** board_b)
 {
-    uint8_t* tmp = *board_b;
-    *board_b     = *board_a;
-    *board_a     = tmp;
+    States* tmp = *board_b;
+    *board_b    = *board_a;
+    *board_a    = tmp;
 }
 
 int main(void)
@@ -108,8 +108,8 @@ int main(void)
         return 1;
     }
 
-    uint8_t* board_a = malloc(sizeof(uint8_t) * BOARD_HEIGHT * BOARD_WIDTH);
-    uint8_t* board_b = malloc(sizeof(uint8_t) * BOARD_HEIGHT * BOARD_WIDTH);
+    States* board_a = malloc(sizeof(States) * BOARD_HEIGHT * BOARD_WIDTH);
+    States* board_b = malloc(sizeof(States) * BOARD_HEIGHT * BOARD_WIDTH);
 
     for (size_t i = 0; i < BOARD_HEIGHT * BOARD_WIDTH; i++)
     {
