@@ -5,8 +5,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define BOARD_WIDTH 30
-#define BOARD_HEIGHT 20
+#define USE_X11
+
+#ifdef USE_X11
+#define XWRAP_IMPLEMENTATION
+#define XWRAP_AUTO_LINK
+#include "xwrap.h"
+#endif
+
+#define BOARD_WIDTH 40
+#define BOARD_HEIGHT 40
 
 bool should_run = true;
 void signal_handler(int) { should_run = false; }
@@ -20,6 +28,42 @@ typedef enum _States
 
 #define POS(arr, i, j, width) arr[(i)*width + (j)]
 
+#ifdef USE_X11
+xw_handle* handle = NULL;
+void print_board_x11(States* board, size_t width, size_t height)
+{
+    size_t mult = 10;
+    if (NULL == handle)
+    {
+        handle = xw_create_window(height * mult, width * mult);
+    }
+    for (size_t i = 0; i < height; i++)
+    {
+        for (size_t j = 0; j < width; j++)
+        {
+            uint32_t color = 0;
+            switch (POS(board, i, j, width))
+            {
+                case DEAD:
+                    color = 0x00000000;
+                    break;
+                case ALIVE:
+                    color = 0x00FFFFFF;
+                    break;
+
+                default:
+                    printf("\n%s:%d %s ERROR: unreachable code, state: %d\n", __FILE__, __LINE__, __FUNCTION__, board[i * width + j]);
+                    exit(1);
+                    break;
+            }
+            xw_draw_rectangle(handle, i * mult, j * mult, mult, mult, true, color);
+        }
+    }
+
+    xw_draw(handle);
+}
+#endif
+
 void print_board(States* board, size_t width, size_t height)
 {
     for (size_t i = 0; i < height; i++)
@@ -29,10 +73,10 @@ void print_board(States* board, size_t width, size_t height)
             switch (POS(board, i, j, width))
             {
                 case DEAD:
-                    printf(" ");
+                    putchar(' ');
                     break;
                 case ALIVE:
-                    printf("*");
+                    putchar('*');
                     break;
 
                 default:
@@ -40,9 +84,9 @@ void print_board(States* board, size_t width, size_t height)
                     exit(1);
                     break;
             }
-            printf(" ");
+            putchar(' ');
         }
-        printf("\n");
+        putchar('\n');
     }
 }
 
@@ -116,24 +160,31 @@ int main(void)
         board_a[i] = DEAD;
     }
 
-    {  // Create a glider
-        POS(board_a, 10, 10, BOARD_WIDTH) = ALIVE;
-        POS(board_a, 10, 11, BOARD_WIDTH) = ALIVE;
-        POS(board_a, 10, 12, BOARD_WIDTH) = ALIVE;
-        POS(board_a, 11, 10, BOARD_WIDTH) = ALIVE;
-        POS(board_a, 12, 11, BOARD_WIDTH) = ALIVE;
-        POS(board_a, 1, 0, BOARD_WIDTH)   = ALIVE;
+    {  // R-Pentomino
+        POS(board_a, (BOARD_HEIGHT / 2) + 0, (BOARD_WIDTH / 2) + 1, BOARD_WIDTH) = ALIVE;
+        POS(board_a, (BOARD_HEIGHT / 2) + 0, (BOARD_WIDTH / 2) + 0, BOARD_WIDTH) = ALIVE;
+        POS(board_a, (BOARD_HEIGHT / 2) + 1, (BOARD_WIDTH / 2) + 0, BOARD_WIDTH) = ALIVE;
+        POS(board_a, (BOARD_HEIGHT / 2) + 2, (BOARD_WIDTH / 2) + 0, BOARD_WIDTH) = ALIVE;
+        POS(board_a, (BOARD_HEIGHT / 2) + 1, (BOARD_WIDTH / 2) - 1, BOARD_WIDTH) = ALIVE;
     }
-
     while (should_run)
     {
         step(board_a, board_b, BOARD_WIDTH, BOARD_HEIGHT);
         switch_board(&board_a, &board_b);
-
+#ifdef USE_X11
+        print_board_x11(board_a, BOARD_WIDTH, BOARD_HEIGHT);
+#else
         clear_screen();
         print_board(board_a, BOARD_WIDTH, BOARD_HEIGHT);
+#endif
+
+        // clear_screen();
         usleep(100000);
     }
+
+#ifdef USE_X11
+    xw_free_window(handle);
+#endif
 
     free(board_a);
     free(board_b);
