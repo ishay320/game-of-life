@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define USE_X11
-
 #ifdef USE_X11
 #define XWRAP_IMPLEMENTATION
 #define XWRAP_AUTO_LINK

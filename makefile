@@ -3,6 +3,9 @@
 SRC=gol.c
 CFLAGS=-Wall -Wextra -g
 
+gol_x11: ${SRC} xwrap.h
+	${CC} ${CFLAGS} $< -o $@ -DUSE_X11
+
 gol: ${SRC} xwrap.h
 	${CC} ${CFLAGS} $< -o $@
 
