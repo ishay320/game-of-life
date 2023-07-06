@@ -33,7 +33,7 @@ void print_board_x11(States* board, size_t width, size_t height)
     size_t mult = 10;
     if (NULL == handle)
     {
-        handle = xw_create_window(height * mult, width * mult);
+        handle = xw_create_window(width * mult, height * mult);
     }
     for (size_t i = 0; i < height; i++)
     {
@@ -54,7 +54,7 @@ void print_board_x11(States* board, size_t width, size_t height)
                     exit(1);
                     break;
             }
-            xw_draw_rectangle(handle, i * mult, j * mult, mult, mult, true, color);
+            xw_draw_rectangle(handle, j * mult, i * mult, mult, mult, true, color);
         }
     }
 
