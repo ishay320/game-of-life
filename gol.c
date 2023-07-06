@@ -11,7 +11,7 @@
 #include "xwrap.h"
 #endif
 
-#define BOARD_WIDTH 40
+#define BOARD_WIDTH 80
 #define BOARD_HEIGHT 40
 
 bool should_run = true;
@@ -20,6 +20,7 @@ void signal_handler(int) { should_run = false; }
 typedef enum _States
 {
     DEAD,
+    DYING,
     ALIVE,
     STATES_LEN
 } States;
@@ -44,6 +45,9 @@ void print_board_x11(States* board, size_t width, size_t height)
             {
                 case DEAD:
                     color = 0x00000000;
+                    break;
+                case DYING:
+                    color = 0x00FF00FF;
                     break;
                 case ALIVE:
                     color = 0x00FFFFFF;
@@ -72,6 +76,9 @@ void print_board(States* board, size_t width, size_t height)
             {
                 case DEAD:
                     putchar(' ');
+                    break;
+                case DYING:
+                    putchar('^');
                     break;
                 case ALIVE:
                     putchar('*');
@@ -105,7 +112,34 @@ uint8_t get_neighbors(const States* board, size_t width, size_t height, size_t i
     return count;
 }
 
-void step(const States* board_a, States* board_b, size_t width, size_t height)
+void step_bb(const States* board_a, States* board_b, size_t width, size_t height)
+{
+    for (size_t i = 0; i < height; i++)
+    {
+        for (size_t j = 0; j < width; j++)
+        {
+            uint8_t neighbors = get_neighbors(board_a, width, height, i, j);
+            if (POS(board_a, i, j, width) == ALIVE && (2 == neighbors || neighbors == 3))
+            {
+                POS(board_b, i, j, width) = ALIVE;
+            }
+            else if (POS(board_a, i, j, width) == DEAD && neighbors == 2)
+            {
+                POS(board_b, i, j, width) = ALIVE;
+            }
+            else if (POS(board_a, i, j, width) == ALIVE)
+            {
+                POS(board_b, i, j, width) = DYING;
+            }
+            else
+            {
+                POS(board_b, i, j, width) = DEAD;
+            }
+        }
+    }
+}
+
+void step_gol(const States* board_a, States* board_b, size_t width, size_t height)
 {
     for (size_t i = 0; i < height; i++)
     {
@@ -165,9 +199,14 @@ int main(void)
         POS(board_a, (BOARD_HEIGHT / 2) + 2, (BOARD_WIDTH / 2) + 0, BOARD_WIDTH) = ALIVE;
         POS(board_a, (BOARD_HEIGHT / 2) + 1, (BOARD_WIDTH / 2) - 1, BOARD_WIDTH) = ALIVE;
     }
+
     while (should_run)
     {
-        step(board_a, board_b, BOARD_WIDTH, BOARD_HEIGHT);
+#ifdef BRIAN_BRAIN
+        step_bb(board_a, board_b, BOARD_WIDTH, BOARD_HEIGHT);
+#else
+        step_gol(board_a, board_b, BOARD_WIDTH, BOARD_HEIGHT);
+#endif
         switch_board(&board_a, &board_b);
 #ifdef USE_X11
         print_board_x11(board_a, BOARD_WIDTH, BOARD_HEIGHT);
