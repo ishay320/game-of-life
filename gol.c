@@ -25,23 +25,30 @@ typedef enum _States
     STATES_LEN
 } States;
 
+typedef struct _Board
+{
+    size_t width;
+    size_t height;
+    States* data;
+} Board;
+
 #define POS(arr, i, j, width) arr[(i)*width + (j)]
 
 #ifdef USE_X11
 xw_handle* handle = NULL;
-void print_board_x11(States* board, size_t width, size_t height)
+void print_board_x11(Board board)
 {
     size_t mult = 10;
     if (NULL == handle)
     {
-        handle = xw_create_window(width * mult, height * mult);
+        handle = xw_create_window(board.width * mult, board.height * mult);
     }
-    for (size_t i = 0; i < height; i++)
+    for (size_t i = 0; i < board.height; i++)
     {
-        for (size_t j = 0; j < width; j++)
+        for (size_t j = 0; j < board.width; j++)
         {
             uint32_t color = 0;
-            switch (POS(board, i, j, width))
+            switch (POS(board.data, i, j, board.width))
             {
                 case DEAD:
                     color = 0x00000000;
@@ -54,7 +61,7 @@ void print_board_x11(States* board, size_t width, size_t height)
                     break;
 
                 default:
-                    printf("\n%s:%d %s ERROR: unreachable code, state: %d\n", __FILE__, __LINE__, __FUNCTION__, board[i * width + j]);
+                    printf("\n%s:%d %s ERROR: unreachable code, state: %d\n", __FILE__, __LINE__, __FUNCTION__, board.data[i * board.width + j]);
                     exit(1);
                     break;
             }
@@ -66,26 +73,26 @@ void print_board_x11(States* board, size_t width, size_t height)
 }
 #endif
 
-void print_board(States* board, size_t width, size_t height)
+void print_board(Board board)
 {
-    for (size_t i = 0; i < height; i++)
+    for (size_t i = 0; i < board.height; i++)
     {
-        for (size_t j = 0; j < width; j++)
+        for (size_t j = 0; j < board.width; j++)
         {
-            switch (POS(board, i, j, width))
+            switch (POS(board.data, i, j, board.width))
             {
                 case DEAD:
                     putchar(' ');
                     break;
                 case DYING:
-                    putchar('^');
+                    putchar('*');
                     break;
                 case ALIVE:
-                    putchar('*');
+                    putchar('@');
                     break;
 
                 default:
-                    printf("\n%s:%d %s ERROR: unreachable code, state: %d\n", __FILE__, __LINE__, __FUNCTION__, board[i * width + j]);
+                    printf("\n%s:%d %s ERROR: unreachable code, state: %d\n", __FILE__, __LINE__, __FUNCTION__, board.data[i * board.width + j]);
                     exit(1);
                     break;
             }
@@ -96,14 +103,14 @@ void print_board(States* board, size_t width, size_t height)
 }
 
 #define ROUND_POS(arr, i, j, width, height) POS(arr, ((i + height) % height), ((j + width) % width), width)
-uint8_t get_neighbors(const States* board, size_t width, size_t height, size_t i, size_t j)
+uint8_t get_neighbors(const Board board, size_t i, size_t j)
 {
     uint8_t count = 0;
     for (int row = i - 1; row <= (int)i + 1; row++)
     {
         for (int column = j - 1; column <= (int)j + 1; column++)
         {
-            if (!(row == (int)i && column == (int)j) && ROUND_POS(board, row, column, width, height) == ALIVE)
+            if (!(row == (int)i && column == (int)j) && ROUND_POS(board.data, row, column, board.width, board.height) == ALIVE)
             {
                 count++;
             }
@@ -112,51 +119,51 @@ uint8_t get_neighbors(const States* board, size_t width, size_t height, size_t i
     return count;
 }
 
-void step_bb(const States* board_a, States* board_b, size_t width, size_t height)
+void step_bb(const Board board_a, Board board_b)
 {
-    for (size_t i = 0; i < height; i++)
+    for (size_t i = 0; i < board_a.height; i++)
     {
-        for (size_t j = 0; j < width; j++)
+        for (size_t j = 0; j < board_a.width; j++)
         {
-            uint8_t neighbors = get_neighbors(board_a, width, height, i, j);
-            if (POS(board_a, i, j, width) == ALIVE && (2 == neighbors || neighbors == 3))
+            uint8_t neighbors = get_neighbors(board_a, i, j);
+            if (POS(board_a.data, i, j, board_a.width) == ALIVE && (2 == neighbors || neighbors == 3))
             {
-                POS(board_b, i, j, width) = ALIVE;
+                POS(board_b.data, i, j, board_b.width) = ALIVE;
             }
-            else if (POS(board_a, i, j, width) == DEAD && neighbors == 2)
+            else if (POS(board_a.data, i, j, board_a.width) == DEAD && neighbors == 2)
             {
-                POS(board_b, i, j, width) = ALIVE;
+                POS(board_b.data, i, j, board_b.width) = ALIVE;
             }
-            else if (POS(board_a, i, j, width) == ALIVE)
+            else if (POS(board_a.data, i, j, board_a.width) == ALIVE)
             {
-                POS(board_b, i, j, width) = DYING;
+                POS(board_b.data, i, j, board_b.width) = DYING;
             }
             else
             {
-                POS(board_b, i, j, width) = DEAD;
+                POS(board_b.data, i, j, board_b.width) = DEAD;
             }
         }
     }
 }
 
-void step_gol(const States* board_a, States* board_b, size_t width, size_t height)
+void step_gol(const Board board_a, Board board_b)
 {
-    for (size_t i = 0; i < height; i++)
+    for (size_t i = 0; i < board_a.height; i++)
     {
-        for (size_t j = 0; j < width; j++)
+        for (size_t j = 0; j < board_a.width; j++)
         {
-            uint8_t neighbors = get_neighbors(board_a, width, height, i, j);
-            if (POS(board_a, i, j, width) == ALIVE && (2 == neighbors || neighbors == 3))
+            uint8_t neighbors = get_neighbors(board_a, i, j);
+            if (POS(board_a.data, i, j, board_a.width) == ALIVE && (2 == neighbors || neighbors == 3))
             {
-                POS(board_b, i, j, width) = ALIVE;
+                POS(board_b.data, i, j, board_b.width) = ALIVE;
             }
             else if (neighbors == 3)
             {
-                POS(board_b, i, j, width) = ALIVE;
+                POS(board_b.data, i, j, board_b.width) = ALIVE;
             }
             else
             {
-                POS(board_b, i, j, width) = DEAD;
+                POS(board_b.data, i, j, board_b.width) = DEAD;
             }
         }
     }
@@ -168,12 +175,20 @@ void clear_screen()
     write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 11);
 }
 
-void switch_board(States** board_a, States** board_b)
+void switch_board(Board* board_a, Board* board_b)
 {
-    States* tmp = *board_b;
-    *board_b    = *board_a;
-    *board_a    = tmp;
+    Board tmp = *board_b;
+    *board_b  = *board_a;
+    *board_a  = tmp;
 }
+
+Board board_create(size_t width, size_t height)
+{
+    Board board = {.width = height, .height = width, .data = malloc(sizeof(States) * height * width)};
+    return board;
+}
+
+void board_destroy(Board board) { free(board.data); }
 
 int main(void)
 {
@@ -184,35 +199,35 @@ int main(void)
         return 1;
     }
 
-    States* board_a = malloc(sizeof(States) * BOARD_HEIGHT * BOARD_WIDTH);
-    States* board_b = malloc(sizeof(States) * BOARD_HEIGHT * BOARD_WIDTH);
+    Board board_a = board_create(BOARD_WIDTH, BOARD_HEIGHT);
+    Board board_b = board_create(BOARD_WIDTH, BOARD_HEIGHT);
 
-    for (size_t i = 0; i < BOARD_HEIGHT * BOARD_WIDTH; i++)
+    for (size_t i = 0; i < board_a.height * board_a.width; i++)
     {
-        board_a[i] = DEAD;
+        board_a.data[i] = DEAD;
     }
 
     {  // R-Pentomino
-        POS(board_a, (BOARD_HEIGHT / 2) + 0, (BOARD_WIDTH / 2) + 1, BOARD_WIDTH) = ALIVE;
-        POS(board_a, (BOARD_HEIGHT / 2) + 0, (BOARD_WIDTH / 2) + 0, BOARD_WIDTH) = ALIVE;
-        POS(board_a, (BOARD_HEIGHT / 2) + 1, (BOARD_WIDTH / 2) + 0, BOARD_WIDTH) = ALIVE;
-        POS(board_a, (BOARD_HEIGHT / 2) + 2, (BOARD_WIDTH / 2) + 0, BOARD_WIDTH) = ALIVE;
-        POS(board_a, (BOARD_HEIGHT / 2) + 1, (BOARD_WIDTH / 2) - 1, BOARD_WIDTH) = ALIVE;
+        POS(board_a.data, (board_a.height / 2) + 0, (board_a.width / 2) + 1, board_a.width) = ALIVE;
+        POS(board_a.data, (board_a.height / 2) + 0, (board_a.width / 2) + 0, board_a.width) = ALIVE;
+        POS(board_a.data, (board_a.height / 2) + 1, (board_a.width / 2) + 0, board_a.width) = ALIVE;
+        POS(board_a.data, (board_a.height / 2) + 2, (board_a.width / 2) + 0, board_a.width) = ALIVE;
+        POS(board_a.data, (board_a.height / 2) + 1, (board_a.width / 2) - 1, board_a.width) = ALIVE;
     }
 
     while (should_run)
     {
 #ifdef BRIAN_BRAIN
-        step_bb(board_a, board_b, BOARD_WIDTH, BOARD_HEIGHT);
+        step_bb(board_a, board_b);
 #else
-        step_gol(board_a, board_b, BOARD_WIDTH, BOARD_HEIGHT);
+        step_gol(board_a, board_b);
 #endif
         switch_board(&board_a, &board_b);
 #ifdef USE_X11
-        print_board_x11(board_a, BOARD_WIDTH, BOARD_HEIGHT);
+        print_board_x11(board_a);
 #else
         clear_screen();
-        print_board(board_a, BOARD_WIDTH, BOARD_HEIGHT);
+        print_board(board_a);
 #endif
 
         // clear_screen();
@@ -223,7 +238,7 @@ int main(void)
     xw_free_window(handle);
 #endif
 
-    free(board_a);
-    free(board_b);
+    board_destroy(board_a);
+    board_destroy(board_b);
     return 0;
 }
