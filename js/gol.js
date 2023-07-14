@@ -34,7 +34,27 @@ function clear_screen() {
     console.log("\x1b[1;1H\x1b[2J");
 }
 
-async function main() {
+function step(board_a, board_b) {
+    for (let i = 0; i < board_a.length; i++) {
+        for (let j = 0; j < board_a[0].length; j++) {
+            n = neighbors(board_a, i, j);
+
+            if (board_a[i][j] == states[1] && (n == 2 || 3 ==
+                n)) {
+                board_b[i][j] = states[1];
+            }
+            else if (n == 3) {
+                board_b[i][j] = states[1];
+            }
+            else {
+                board_b[i][j] = states[0];
+            }
+
+        }
+    }
+}
+
+function create_boards(width, height) {
     board_a = Array(height);
     board_b = Array(height).fill(Array(width).fill(states[0]));
     for (let i = 0; i < height; i++) {
@@ -45,37 +65,29 @@ async function main() {
             board_b[i][j] = states[0];
         }
     }
+    return [board_a, board_b]
+}
 
+function add_r_pentomino(board) {
+    height = board.length
+    width = board[0].length
+    board[(height / 2) + 0][(width / 2) + 1] = states[1];
+    board[(height / 2) + 0][(width / 2) + 0] = states[1];
+    board[(height / 2) + 1][(width / 2) + 0] = states[1];
+    board[(height / 2) + 2][(width / 2) + 0] = states[1];
+    board[(height / 2) + 1][(width / 2) - 1] = states[1];
 
-    // R-Pentomino
-    board_a[(height / 2) + 0][(width / 2) + 1] = states[1];
-    board_a[(height / 2) + 0][(width / 2) + 0] = states[1];
-    board_a[(height / 2) + 1][(width / 2) + 0] = states[1];
-    board_a[(height / 2) + 2][(width / 2) + 0] = states[1];
-    board_a[(height / 2) + 1][(width / 2) - 1] = states[1];
+}
+
+async function main() {
+    [board_a, board_b] = create_boards(width, height)
+    add_r_pentomino(board_a)
 
     while (true) {
-        for (let i = 0; i < board_a.length; i++) {
-            for (let j = 0; j < board_a[0].length; j++) {
-                n = neighbors(board_a, i, j);
-
-
-                if (board_a[i][j] == states[1] && (n == 2 || 3 ==
-                    n)) {
-                    board_b[i][j] = states[1];
-                }
-                else if (n == 3) {
-                    board_b[i][j] = states[1];
-                }
-                else {
-                    board_b[i][j] = states[0];
-                }
-
-            }
-        }
-        var tmp = board_a
-        board_a = board_b
-        board_b = tmp
+        step(board_a, board_b)
+        var tmp = board_a;
+        board_a = board_b;
+        board_b = tmp;
 
         clear_screen()
         print_board(board_a);
