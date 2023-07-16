@@ -1,7 +1,7 @@
-gol
 .vscode
-xwrap.h
-gol_x11
-bb_x11
-gol
-bb
+c/gol
+c/xwrap.h
+c/gol_x11
+c/bb_x11
+c/gol
+c/bb
