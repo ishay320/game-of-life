@@ -11,8 +11,8 @@
 #include "xwrap.h"
 #endif
 
-#define BOARD_WIDTH 80
-#define BOARD_HEIGHT 40
+#define BOARD_WIDTH 300
+#define BOARD_HEIGHT 200
 
 bool should_run = true;
 void signal_handler(int) { should_run = false; }
@@ -38,7 +38,7 @@ typedef struct _Board
 xw_handle* handle = NULL;
 void print_board_x11(Board board)
 {
-    size_t mult = 10;
+    size_t mult = 2;
     if (NULL == handle)
     {
         handle = xw_create_window(board.width * mult, board.height * mult);
@@ -184,7 +184,7 @@ void switch_board(Board* board_a, Board* board_b)
 
 Board board_create(size_t width, size_t height)
 {
-    Board board = {.width = height, .height = width, .data = malloc(sizeof(States) * height * width)};
+    Board board = {.width = width, .height = height, .data = malloc(sizeof(States) * height * width)};
     return board;
 }
 
@@ -230,7 +230,6 @@ int main(void)
         print_board(board_a);
 #endif
 
-        // clear_screen();
         usleep(100000);
     }
 
