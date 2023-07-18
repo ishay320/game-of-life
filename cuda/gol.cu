@@ -3,8 +3,12 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define BOARD_WIDTH 30
-#define BOARD_HEIGHT 20
+#ifdef USE_X11
+#include "xwrap.h"
+#endif
+
+#define BOARD_WIDTH 300
+#define BOARD_HEIGHT 200
 
 bool should_run = true;
 void signal_handler(int) { should_run = false; }
@@ -29,6 +33,42 @@ typedef enum _States
         }                                                                                                           \
     } while (0)
 
+#ifdef USE_X11
+xw_handle *handle = NULL;
+void print_board_x11(States *board, size_t width, size_t height)
+{
+    size_t mult = 2;
+    if (NULL == handle)
+    {
+        handle = xw_create_window(width * mult, height * mult);
+    }
+    for (size_t i = 0; i < height; i++)
+    {
+        for (size_t j = 0; j < width; j++)
+        {
+            uint32_t color = 0;
+            switch (POS(board, i, j, width))
+            {
+                case DEAD:
+                    color = 0x00000000;
+                    break;
+                case ALIVE:
+                    color = 0x00FFFFFF;
+                    break;
+
+                default:
+                    printf("\n%s:%d %s ERROR: unreachable code, state: %d\n", __FILE__, __LINE__, __FUNCTION__, board[i * width + j]);
+                    exit(1);
+                    break;
+            }
+            xw_draw_rectangle(handle, j * mult, i * mult, mult, mult, true, color);
+        }
+    }
+
+    xw_draw(handle);
+}
+#else
+
 void print_board(States *board, size_t width, size_t height)
 {
     for (size_t i = 0; i < height; i++)
@@ -37,10 +77,10 @@ void print_board(States *board, size_t width, size_t height)
         {
             switch (POS(board, i, j, width))
             {
-                case 0:
+                case DEAD:
                     putchar(' ');
                     break;
-                case 1:
+                case ALIVE:
                     putchar('#');
                     break;
 
@@ -54,6 +94,7 @@ void print_board(States *board, size_t width, size_t height)
         putchar('\n');
     }
 }
+#endif
 
 #define ROUND_POS(arr, i, j, width, height) POS(arr, ((i + height) % height), ((j + width) % width), width)
 __device__ uint8_t get_neighbors(States *board, size_t width, size_t height, size_t i, size_t j)
@@ -78,7 +119,7 @@ __global__ void step(States *board, States *board_out, size_t width, size_t heig
     const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= (width * height))
     {
-        printf("%d, idx %d", width * height, idx);
+        // printf("out of bound: %d, idx %ld\n", width * height, idx);
         return;
     }
 
@@ -152,7 +193,7 @@ int main(void)
     cudaCheckErrors("cudaMemcpy 1 fail");
 
     // Size of blocks and threads
-    int block_size = 1;
+    int block_size = 1024;
     int n_blocks   = size / block_size + (size % block_size == 0 ? 0 : 1);
     step<<<n_blocks, block_size>>>(board_gpu, board_gpu_out, BOARD_WIDTH, BOARD_HEIGHT);
     cudaDeviceSynchronize();
@@ -173,9 +214,12 @@ int main(void)
         board_gpu_out = board_gpu;
         board_gpu     = tmp;
 
-        // Print results
+#ifdef USE_X11
+        print_board_x11(board_cpu, BOARD_WIDTH, BOARD_HEIGHT);
+#else
         clear_screen();
         print_board(board_cpu, BOARD_WIDTH, BOARD_HEIGHT);
+#endif
 
         usleep(100000);
     }
