@@ -88,7 +88,7 @@ void print_board(Board board)
                     putchar('*');
                     break;
                 case ALIVE:
-                    putchar('@');
+                    putchar('#');
                     break;
 
                 default:
