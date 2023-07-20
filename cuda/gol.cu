@@ -193,16 +193,15 @@ int main(void)
     cudaCheckErrors("cudaMemcpy 1 fail");
 
     // Size of blocks and threads
-    int block_size = 1024;
+    int block_size = 128;
     int n_blocks   = size / block_size + (size % block_size == 0 ? 0 : 1);
     step<<<n_blocks, block_size>>>(board_gpu, board_gpu_out, BOARD_WIDTH, BOARD_HEIGHT);
-    cudaDeviceSynchronize();
-    cudaCheckErrors("kernel fail");
 
     while (should_run)
     {
         // Retrieve result from device and store it in host array
         cudaDeviceSynchronize();
+        cudaCheckErrors("kernel fail");
         cudaMemcpy(board_cpu, board_gpu_out, size * sizeof(States), cudaMemcpyDeviceToHost);
         cudaCheckErrors("cudaMemcpy 2 fail");
 
