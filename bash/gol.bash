@@ -50,20 +50,27 @@ board_a[((height / 2) + 1) * width + ((width / 2) + 0)]=${states[1]}
 board_a[((height / 2) + 2) * width + ((width / 2) + 0)]=${states[1]}
 board_a[((height / 2) + 1) * width + ((width / 2) - 1)]=${states[1]}
 
-while true; do
+neighbors() {
+    i=$1
+    j=$2
+
+    count=0
+    for ((row = i - 1; row < i + 2; row++)); do
+        for ((column = j - 1; column < j + 2; column++)); do
+            if ! { [[ $row == "$i" ]] && [[ $column == "$j" ]]; } &&
+                [[ ${board_a[$(circular_arr $row $column $height $width)]} -eq ${states[1]} ]]; then
+                ((count++))
+            fi
+        done
+    done
+    echo $count
+}
+
+step() {
     for ((i = 0; i < height; i++)); do
         for ((j = 0; j < width; j++)); do
+            count=$(neighbors $i $j)
 
-            # neighbors
-            count=0
-            for ((row = i - 1; row < i + 2; row++)); do
-                for ((column = j - 1; column < j + 2; column++)); do
-                    if ! { [[ $row == "$i" ]] && [[ $column == "$j" ]]; } &&
-                        [[ ${board_a[$(circular_arr $row $column $height $width)]} -eq ${states[1]} ]]; then
-                        ((count++))
-                    fi
-                done
-            done
             if [[ ${board_a[$i * $width + $j]} == "${states[1]}" ]] && { [[ $count == 2 ]] || [[ $count == 3 ]]; }; then
                 board_b[i * width + j]=${states[1]}
             elif [[ $count == 3 ]]; then
@@ -73,7 +80,10 @@ while true; do
             fi
         done
     done
+}
 
+while true; do
+    time step
     tmp=("${board_a[@]}")
     board_a=("${board_b[@]}")
     board_b=("${tmp[@]}")
