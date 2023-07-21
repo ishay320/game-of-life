@@ -23,6 +23,7 @@ print_board() {
                 ;;
             *)
                 echo "ERROR: state not known"
+                exit 1
                 ;;
             esac
         done
@@ -83,7 +84,7 @@ step() {
 }
 
 while true; do
-    time step
+    step
     tmp=("${board_a[@]}")
     board_a=("${board_b[@]}")
     board_b=("${tmp[@]}")
